@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Tracker Onza Libertad</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body {
+    font-family: Arial;
+    background: #0f172a;
+    color: #e5e7eb;
+    padding: 20px;
+}
+.card {
+    background: #020617;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+input {
+    width: 100%;
+    padding: 6px;
+    margin-top: 5px;
+    border-radius: 6px;
+    border: none;
+}
+</style>
+</head>
+<body>
+
+<h1>📊 Tracker Onza Libertad</h1>
+
+<div class="card">
+    <p>Spot Plata USD: <span id="spotUsd">--</span></p>
+    <p>Spot Plata MXN: $<span id="spotMxn">--</span></p>
+    <p>Precio Libertad estimado: $<span id="libertad">--</span></p>
+</div>
+
+<div class="card">
+    <label>Inversión inicial (MXN)</label>
+    <input id="inversion" type="number" value="2300">
+
+    <label>Onzas Libertad</label>
+    <input id="onzas" type="number" value="2" step="0.1">
+
+    <label>Prima Libertad (MXN)</label>
+    <input id="prima" type="number" value="900">
+</div>
+
+<div class="card">
+    <p>Valor actual: $<span id="valor">0</span></p>
+    <p>Ganancia / Pérdida: $<span id="ganancia">0</span></p>
+</div>
+
+<canvas id="grafica"></canvas>
+
+<script>
+const API_KEY = "PON_AQUI_TU_API_KEY";
+const USD_MXN = 17.0;
+
+const spotUsdSpan = document.getElementById("spotUsd");
+const spotMxnSpan = document.getElementById("spotMxn");
+const libertadSpan = document.getElementById("libertad");
+const valorSpan = document.getElementById("valor");
+const gananciaSpan = document.getElementById("ganancia");
+
+const inversionInput = document.getElementById("inversion");
+const onzasInput = document.getElementById("onzas");
+const primaInput = document.getElementById("prima");
+
+const chart = new Chart(document.getElementById("grafica"), {
+    type: "line",
+    data: {
+        labels: [],
+        datasets: [{
+            label: "Valor de inversión (MXN)",
+            data: [],
+            borderWidth: 2
+        }]
+    }
+});
+
+async function obtenerSpot() {
+    const res = await fetch("https://www.goldapi.io/api/XAG/USD", {
+        headers: {
+            "x-access-token": API_KEY
+        }
+    });
+    const data = await res.json();
+    return data.price;
+}
+
+async function actualizar() {
+    try {
+        const spotUsd = await obtenerSpot();
+
+        const inversion = +inversionInput.value;
+        const onzas = +onzasInput.value;
+        const prima = +primaInput.value;
+
+        const spotMxn = spotUsd * USD_MXN;
+        const precioLib = spotMxn + prima;
+        const valor = precioLib * onzas;
+        const ganancia = valor - inversion;
+
+        spotUsdSpan.textContent = `$${spotUsd.toFixed(2)}`;
+        spotMxnSpan.textContent = spotMxn.toFixed(2);
+        libertadSpan.textContent = precioLib.toFixed(2);
+        valorSpan.textContent = valor.toFixed(2);
+        gananciaSpan.textContent = ganancia.toFixed(2);
+
+        chart.data.labels.push(new Date().toLocaleTimeString());
+        chart.data.datasets[0].data.push(valor);
+        chart.update();
+
+    } catch (e) {
+        console.error(e);
+        alert("Error obteniendo el precio");
+    }
+}
+
+actualizar();
+setInterval(actualizar, 60000);
+</script>
+
+</body>
+</html>
